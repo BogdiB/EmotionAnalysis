@@ -12,7 +12,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, accuracy_score, hamming_loss, confusion_matrix
-from sklearn.multiclass import OneVsRestClassifier
+from sklearn.linear_model import LogisticRegression
 
 # Download stopwords
 nltk.download('stopwords')
@@ -35,7 +35,7 @@ def load_data(file_paths):
     dfs = []
     for path in file_paths:
         df = pd.read_csv(path)
-        df = df[df[EMOTION_COLUMNS].sum(axis=1) > 0]  # Filter rows with at least one emotion
+        df = df[df[EMOTION_COLUMNS].sum(axis = 1) > 0]  # Filter rows with at least one emotion
         dfs.append(df)
     return pd.concat(dfs, ignore_index=True)
 
@@ -53,7 +53,7 @@ def clean_text(text):
 # -------------------------------
 def preprocess(df):
     df['clean_text'] = df['text'].apply(clean_text)
-    df['emotion'] = df[EMOTION_COLUMNS].idxmax(axis=1)  # Take the first max label as the single label
+    df['emotion'] = df[EMOTION_COLUMNS].idxmax(axis = 1)  # Take the first max label as the single label
     le = LabelEncoder()
     df['emotion_label'] = le.fit_transform(df['emotion'])
     return df, le
@@ -62,13 +62,13 @@ def preprocess(df):
 # Step 4: Split Data
 # -------------------------------
 def split_data(df):
-    return train_test_split(df['clean_text'], df['emotion_label'], test_size=0.2, random_state=42)
+    return train_test_split(df['clean_text'], df['emotion_label'], test_size = 0.2, random_state = 42)
 
 # -------------------------------
 # Step 5: Vectorize Text
 # -------------------------------
 def vectorize_text(X_train, X_test):
-    vectorizer = TfidfVectorizer(max_features=5000)
+    vectorizer = TfidfVectorizer(max_features = 5000)
     X_train_vec = vectorizer.fit_transform(X_train)
     X_test_vec = vectorizer.transform(X_test)
     return X_train_vec, X_test_vec, vectorizer
@@ -77,8 +77,17 @@ def vectorize_text(X_train, X_test):
 # Step 6: Train Model
 # -------------------------------
 def train_model(X_train_vec, y_train):
-    clf = OneVsRestClassifier(LogisticRegression(max_iter=1000))
+    # Base logistic regression with tuned solver and regularization
+    clf = LogisticRegression(
+        C = 1.0,               # Regularization strength (inverse)
+        max_iter = 1000,
+        solver = 'liblinear',  # Good for small to medium sparse data
+        class_weight = 'balanced'  # Handle class imbalance
+    )
+    
+    # Fit model
     clf.fit(X_train_vec, y_train)
+    
     return clf
 
 # -------------------------------
@@ -89,10 +98,10 @@ def evaluate_model(clf, X_test_vec, y_test, label_encoder):
     print("Hamming Loss:", hamming_loss(y_test, y_pred))
     print("Accuracy:", accuracy_score(y_test, y_pred))
     print("\nClassification Report:")
-    print(classification_report(y_test, y_pred, target_names=label_encoder.classes_, zero_division=0))
+    print(classification_report(y_test, y_pred, target_names = label_encoder.classes_, zero_division = 0))
 
     cm = confusion_matrix(y_test, y_pred)
-    sns.heatmap(cm, annot=True, fmt='d', xticklabels=label_encoder.classes_, yticklabels=label_encoder.classes_)
+    sns.heatmap(cm, annot = True, fmt = 'd', xticklabels = label_encoder.classes_, yticklabels = label_encoder.classes_)
     plt.xlabel("Predicted")
     plt.ylabel("True")
     plt.title("Confusion Matrix")
